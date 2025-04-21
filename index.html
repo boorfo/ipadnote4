@@ -1,21 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>剪贴板粘贴工具</title>
+  <title>笔记记录</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-md p-6">
-    <h1 class="text-2xl font-bold mb-4">剪贴板粘贴工具</h1>
+<body class="bg-gray-100 p-4 min-h-screen">
+  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col">
+    <h1 class="text-3xl font-bold mb-4 text-center">📘 笔记记录</h1>
 
-    <button onclick="pasteFromClipboard()" class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-xl">
+    <button onclick="pasteFromClipboard()" class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl">
       📋 粘贴剪贴板内容
     </button>
 
-    <textarea id="output" rows="6" class="w-full p-4 border rounded-xl bg-gray-50" placeholder="粘贴的内容将显示在这里..." readonly></textarea>
+    <textarea id="output" class="flex-1 w-full min-h-[40vh] p-4 border rounded-xl bg-gray-50 resize-none" placeholder="粘贴的内容将显示在这里..." readonly></textarea>
   </div>
 
   <script>
@@ -30,3 +29,4 @@
   </script>
 </body>
 </html>
+
