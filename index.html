@@ -15,61 +15,97 @@
     
     /* 笔记容器 */
     .notes-container {
-      max-height: 70vh;
+      max-height: 60vh;
       overflow-y: auto;
       scroll-behavior: smooth;
+      margin-top: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
     }
     
     /* 单个笔记卡片 */
     .note-card {
-      transition: all 0.3s ease;
+      background: white;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      border-radius: 0.375rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      word-break: break-word;
     }
     
-    /* 优化滚动条 */
-    .notes-container::-webkit-scrollbar {
-      width: 8px;
-    }
-    .notes-container::-webkit-scrollbar-thumb {
-      background: #cbd5e0;
-      border-radius: 4px;
+    /* 粘贴按钮固定定位 */
+    .paste-btn {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: white;
+      padding: 1rem 0;
     }
   </style>
 </head>
 <body class="bg-gray-100 p-4 min-h-screen">
-  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col">
-    <h1 class="text-3xl font-bold mb-4 text-center">📋 剪贴板笔记卡片</h1>
+  <div class="w-full max-w-3xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-md p-6">
+      <h1 class="text-3xl font-bold mb-4 text-center">📋 剪贴板笔记卡片</h1>
 
-    <!-- 粘贴按钮 -->
-    <button onclick="pasteFromClipboard()" 
-      class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl">
-      粘贴剪贴板内容
-    </button>
+      <!-- 粘贴按钮 -->
+      <div class="paste-btn">
+        <button onclick="pasteFromClipboard()" 
+          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl">
+          粘贴剪贴板内容
+        </button>
+      </div>
 
-    <!-- 笔记卡片容器 -->
-    <div id="notesContainer" class="notes-container flex-1 space-y-3">
-      <!-- 笔记卡片将通过JS动态添加到这里 -->
+      <!-- 笔记卡片容器 -->
+      <div id="notesContainer" class="notes-container">
+        <!-- 笔记卡片将通过JS动态添加到这里 -->
+      </div>
     </div>
 
     <!-- 状态提示 -->
-    <div id="status" class="mt-3 text-sm text-gray-500"></div>
+    <div id="status" class="mt-3 text-sm text-gray-500 text-center"></div>
   </div>
 
   <script>
     // 初始化加载保存的笔记
     document.addEventListener('DOMContentLoaded', () => {
       loadNotes();
-      
-      // iOS需要用户交互后才能访问剪贴板
-      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        document.body.style.cursor = 'pointer'; // 提示用户点击
-      }
+      initializeIOS();
     });
+
+    // iOS初始化处理
+    function initializeIOS() {
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        // 添加透明覆盖层确保首次点击有效
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.01);
+          z-index: 100;
+        `;
+        overlay.onclick = () => {
+          overlay.remove();
+          showStatus('现在可以点击粘贴按钮了', 2000);
+        };
+        document.body.appendChild(overlay);
+      }
+    }
 
     // 从本地存储加载笔记
     function loadNotes() {
-      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
+      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes')) || [];
       const container = document.getElementById('notesContainer');
       container.innerHTML = '';
+      
+      if (savedNotes.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无笔记，点击上方按钮粘贴内容</p>';
+        return;
+      }
       
       savedNotes.forEach((note, index) => {
         addNoteCard(note.content, note.timestamp, index);
@@ -79,25 +115,31 @@
     // 添加新笔记卡片
     function addNoteCard(content, timestamp, index) {
       const container = document.getElementById('notesContainer');
+      
+      // 移除"暂无笔记"提示（如果存在）
+      if (container.firstChild && container.firstChild.textContent.includes('暂无笔记')) {
+        container.innerHTML = '';
+      }
+      
       const date = new Date(timestamp);
       const timeString = date.toLocaleString();
       
       const card = document.createElement('div');
-      card.className = 'note-card bg-gray-50 p-4 rounded-lg border border-gray-200';
+      card.className = 'note-card';
       card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
           <span class="text-xs text-gray-500">${timeString}</span>
-          <button onclick="deleteNote(${index})" class="text-red-500 text-xs">删除</button>
+          <button onclick="deleteNote(${index})" class="text-red-500 hover:text-red-700 text-xs">删除</button>
         </div>
-        <div class="whitespace-pre-wrap break-words">${content}</div>
+        <div class="whitespace-pre-wrap">${content}</div>
       `;
       
-      container.insertBefore(card, container.firstChild);
+      container.prepend(card); // 新笔记添加到顶部
     }
 
     // 删除笔记
     function deleteNote(index) {
-      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
+      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes')) || [];
       savedNotes.splice(index, 1);
       localStorage.setItem('clipboardNotes', JSON.stringify(savedNotes));
       loadNotes();
@@ -120,8 +162,8 @@
         };
         
         // 保存到本地存储
-        const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
-        savedNotes.unshift(newNote); // 新笔记添加到开头
+        const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes')) || [];
+        savedNotes.unshift(newNote);
         localStorage.setItem('clipboardNotes', JSON.stringify(savedNotes));
         
         // 添加到界面
@@ -129,7 +171,8 @@
         showStatus('已添加新笔记 ✓', 2000);
         
       } catch (err) {
-        showStatus('⚠️ 请先点击页面任意位置，然后重试粘贴', 3000);
+        showStatus('⚠️ 粘贴失败：请先点击页面任意位置激活权限', 3000);
+        console.error('粘贴错误:', err);
       }
     }
 
@@ -137,9 +180,9 @@
     function showStatus(message, duration) {
       const status = document.getElementById('status');
       status.textContent = message;
-      status.className = message.startsWith('✓') ? 'mt-3 text-sm text-green-500' : 
-                         message.startsWith('⚠️') ? 'mt-3 text-sm text-yellow-500' : 
-                         'mt-3 text-sm text-gray-500';
+      status.className = message.startsWith('✓') ? 'mt-3 text-sm text-green-500 text-center' : 
+                         message.startsWith('⚠️') ? 'mt-3 text-sm text-yellow-500 text-center' : 
+                         'mt-3 text-sm text-gray-500 text-center';
       
       if (duration > 0) {
         setTimeout(() => status.textContent = '', duration);
