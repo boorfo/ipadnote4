@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>剪贴板笔记</title>
+  <title>剪贴板笔记卡片</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
     /* iOS安全区域适配 */
@@ -13,111 +13,121 @@
       }
     }
     
-    /* 自动调整高度的容器 */
-    .content-container {
-      display: flex;
-      flex-direction: column;
-      min-height: 70vh; /* iPad上最小高度 */
-      max-height: 80vh;
-      overflow: hidden;
+    /* 笔记容器 */
+    .notes-container {
+      max-height: 70vh;
+      overflow-y: auto;
+      scroll-behavior: smooth;
     }
     
-    /* 自动扩展的文本区域 */
-    .auto-resize {
-      flex-grow: 1;
-      min-height: 60vh; /* 保证iPad上有足够显示空间 */
-      resize: none;
-      overflow-y: auto;
+    /* 单个笔记卡片 */
+    .note-card {
+      transition: all 0.3s ease;
     }
     
     /* 优化滚动条 */
-    textarea::-webkit-scrollbar {
+    .notes-container::-webkit-scrollbar {
       width: 8px;
     }
-    textarea::-webkit-scrollbar-thumb {
+    .notes-container::-webkit-scrollbar-thumb {
       background: #cbd5e0;
       border-radius: 4px;
     }
   </style>
 </head>
 <body class="bg-gray-100 p-4 min-h-screen">
-  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col content-container">
-    <h1 class="text-3xl font-bold mb-4 text-center">📘 剪贴板笔记</h1>
+  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col">
+    <h1 class="text-3xl font-bold mb-4 text-center">📋 剪贴板笔记卡片</h1>
 
     <!-- 粘贴按钮 -->
     <button onclick="pasteFromClipboard()" 
-      class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center">
-      📋 粘贴剪贴板内容
+      class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl">
+      粘贴剪贴板内容
     </button>
 
-    <!-- 自适应文本区域 -->
-    <textarea 
-      id="noteContent" 
-      class="auto-resize w-full p-4 border rounded-xl bg-gray-50" 
-      placeholder="粘贴的内容将显示在这里..."
-      autocapitalize="sentences"
-      spellcheck="true"></textarea>
+    <!-- 笔记卡片容器 -->
+    <div id="notesContainer" class="notes-container flex-1 space-y-3">
+      <!-- 笔记卡片将通过JS动态添加到这里 -->
+    </div>
 
     <!-- 状态提示 -->
     <div id="status" class="mt-3 text-sm text-gray-500"></div>
   </div>
 
   <script>
-    // 初始化加载本地存储
+    // 初始化加载保存的笔记
     document.addEventListener('DOMContentLoaded', () => {
-      const savedContent = localStorage.getItem('clipboardNote');
-      if (savedContent) {
-        document.getElementById('noteContent').value = savedContent;
-        adjustTextareaHeight();
-      }
+      loadNotes();
       
-      // iOS自动聚焦处理
+      // iOS需要用户交互后才能访问剪贴板
       if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.01);
-          z-index: 9999;
-        `;
-        overlay.onclick = () => {
-          document.getElementById('noteContent').focus();
-          overlay.remove();
-        };
-        document.body.appendChild(overlay);
+        document.body.style.cursor = 'pointer'; // 提示用户点击
       }
     });
 
-    // 自动调整文本区域高度
-    function adjustTextareaHeight() {
-      const textarea = document.getElementById('noteContent');
-      textarea.style.height = 'auto';
-      textarea.style.height = textarea.scrollHeight + 'px';
+    // 从本地存储加载笔记
+    function loadNotes() {
+      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
+      const container = document.getElementById('notesContainer');
+      container.innerHTML = '';
+      
+      savedNotes.forEach((note, index) => {
+        addNoteCard(note.content, note.timestamp, index);
+      });
     }
 
-    // 自动保存功能
-    document.getElementById('noteContent').addEventListener('input', (e) => {
-      localStorage.setItem('clipboardNote', e.target.value);
-      adjustTextareaHeight();
-      showStatus('已自动保存', 2000);
-    });
+    // 添加新笔记卡片
+    function addNoteCard(content, timestamp, index) {
+      const container = document.getElementById('notesContainer');
+      const date = new Date(timestamp);
+      const timeString = date.toLocaleString();
+      
+      const card = document.createElement('div');
+      card.className = 'note-card bg-gray-50 p-4 rounded-lg border border-gray-200';
+      card.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+          <span class="text-xs text-gray-500">${timeString}</span>
+          <button onclick="deleteNote(${index})" class="text-red-500 text-xs">删除</button>
+        </div>
+        <div class="whitespace-pre-wrap break-words">${content}</div>
+      `;
+      
+      container.insertBefore(card, container.firstChild);
+    }
+
+    // 删除笔记
+    function deleteNote(index) {
+      const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
+      savedNotes.splice(index, 1);
+      localStorage.setItem('clipboardNotes', JSON.stringify(savedNotes));
+      loadNotes();
+      showStatus('已删除笔记', 2000);
+    }
 
     // 剪贴板处理
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        const textarea = document.getElementById('noteContent');
-        textarea.value = text;
-        adjustTextareaHeight();
-        showStatus('粘贴成功 ✓', 2000);
+        if (!text.trim()) {
+          showStatus('剪贴板内容为空', 2000);
+          return;
+        }
         
-        // 自动滚动到底部
-        setTimeout(() => {
-          textarea.scrollTop = textarea.scrollHeight;
-        }, 100);
+        // 创建新笔记
+        const newNote = {
+          content: text,
+          timestamp: Date.now()
+        };
+        
+        // 保存到本地存储
+        const savedNotes = JSON.parse(localStorage.getItem('clipboardNotes') || [];
+        savedNotes.unshift(newNote); // 新笔记添加到开头
+        localStorage.setItem('clipboardNotes', JSON.stringify(savedNotes));
+        
+        // 添加到界面
+        addNoteCard(text, newNote.timestamp, 0);
+        showStatus('已添加新笔记 ✓', 2000);
+        
       } catch (err) {
         showStatus('⚠️ 请先点击页面任意位置，然后重试粘贴', 3000);
       }
