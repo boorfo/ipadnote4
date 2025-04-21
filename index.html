@@ -3,9 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>笔记卡片</title>
+  <title>剪贴板笔记卡片</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
+    /* 深色主题 */
+    body {
+      background-color: #1a202c;
+      color: #e2e8f0;
+    }
+    
     /* iOS安全区域适配 */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       body {
@@ -19,19 +25,21 @@
       overflow-y: auto;
       scroll-behavior: smooth;
       margin-top: 1rem;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #2d3748;
       border-radius: 0.5rem;
       padding: 0.5rem;
+      background-color: #2d3748;
     }
     
     /* 单个笔记卡片 */
     .note-card {
-      background: white;
+      background: #4a5568;
       padding: 1rem;
       margin-bottom: 0.75rem;
       border-radius: 0.375rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       word-break: break-word;
+      color: #e2e8f0;
     }
     
     /* 粘贴按钮固定定位 */
@@ -39,20 +47,29 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      background: white;
+      background: #2d3748;
       padding: 1rem 0;
+    }
+    
+    /* 自定义滚动条 */
+    .notes-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .notes-container::-webkit-scrollbar-thumb {
+      background: #4a5568;
+      border-radius: 4px;
     }
   </style>
 </head>
-<body class="bg-gray-100 p-4 min-h-screen">
+<body class="p-4 min-h-screen">
   <div class="w-full max-w-3xl mx-auto">
-    <div class="bg-white rounded-2xl shadow-md p-6">
-      <h1 class="text-3xl font-bold mb-4 text-center">📋 剪贴板笔记卡片</h1>
+    <div class="rounded-2xl p-6" style="background-color: #2d3748;">
+      <h1 class="text-3xl font-bold mb-4 text-center text-white">📋 剪贴板笔记卡片</h1>
 
-      <!-- 粘贴按钮 -->
+      <!-- 深色风格粘贴按钮 -->
       <div class="paste-btn">
         <button onclick="pasteFromClipboard()" 
-          class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl">
+          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors">
           粘贴剪贴板内容
         </button>
       </div>
@@ -64,7 +81,7 @@
     </div>
 
     <!-- 状态提示 -->
-    <div id="status" class="mt-3 text-sm text-gray-500 text-center"></div>
+    <div id="status" class="mt-3 text-sm text-center"></div>
   </div>
 
   <script>
@@ -103,7 +120,7 @@
       container.innerHTML = '';
       
       if (savedNotes.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-center py-4">暂无笔记，点击上方按钮粘贴内容</p>';
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">暂无笔记，点击上方按钮粘贴内容</p>';
         return;
       }
       
@@ -128,8 +145,8 @@
       card.className = 'note-card';
       card.innerHTML = `
         <div class="flex justify-between items-start mb-2">
-          <span class="text-xs text-gray-500">${timeString}</span>
-          <button onclick="deleteNote(${index})" class="text-red-500 hover:text-red-700 text-xs">删除</button>
+          <span class="text-xs text-gray-300">${timeString}</span>
+          <button onclick="deleteNote(${index})" class="text-red-400 hover:text-red-300 text-xs">删除</button>
         </div>
         <div class="whitespace-pre-wrap">${content}</div>
       `;
@@ -180,9 +197,9 @@
     function showStatus(message, duration) {
       const status = document.getElementById('status');
       status.textContent = message;
-      status.className = message.startsWith('✓') ? 'mt-3 text-sm text-green-500 text-center' : 
-                         message.startsWith('⚠️') ? 'mt-3 text-sm text-yellow-500 text-center' : 
-                         'mt-3 text-sm text-gray-500 text-center';
+      status.className = message.startsWith('✓') ? 'mt-3 text-sm text-green-400 text-center' : 
+                         message.startsWith('⚠️') ? 'mt-3 text-sm text-yellow-400 text-center' : 
+                         'mt-3 text-sm text-gray-400 text-center';
       
       if (duration > 0) {
         setTimeout(() => status.textContent = '', duration);
