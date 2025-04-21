@@ -6,36 +6,55 @@
   <title>剪贴板笔记</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    /* iOS键盘弹出时底部留白 */
+    /* iOS安全区域适配 */
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       body {
         padding-bottom: env(safe-area-inset-bottom);
       }
     }
+    
+    /* 自动调整高度的容器 */
+    .content-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 70vh; /* iPad上最小高度 */
+      max-height: 80vh;
+      overflow: hidden;
+    }
+    
+    /* 自动扩展的文本区域 */
+    .auto-resize {
+      flex-grow: 1;
+      min-height: 60vh; /* 保证iPad上有足够显示空间 */
+      resize: none;
+      overflow-y: auto;
+    }
+    
+    /* 优化滚动条 */
+    textarea::-webkit-scrollbar {
+      width: 8px;
+    }
+    textarea::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body class="bg-gray-100 p-4 min-h-screen">
-  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col">
+  <div class="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-6 flex flex-col content-container">
     <h1 class="text-3xl font-bold mb-4 text-center">📘 剪贴板笔记</h1>
 
-    <!-- 操作按钮组 -->
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <button onclick="pasteFromClipboard()" 
-        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center">
-        📋 粘贴内容
-      </button>
-      <button onclick="uploadToGitHub()" 
-        id="uploadBtn"
-        class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center">
-        ⬆️ 上传GitHub
-      </button>
-    </div>
+    <!-- 粘贴按钮 -->
+    <button onclick="pasteFromClipboard()" 
+      class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center">
+      📋 粘贴剪贴板内容
+    </button>
 
-    <!-- 笔记编辑区 -->
+    <!-- 自适应文本区域 -->
     <textarea 
       id="noteContent" 
-      class="flex-1 w-full min-h-[50vh] p-4 border rounded-xl bg-gray-50 resize-none" 
-      placeholder="内容将显示在这里...可自由编辑"
+      class="auto-resize w-full p-4 border rounded-xl bg-gray-50" 
+      placeholder="粘贴的内容将显示在这里..."
       autocapitalize="sentences"
       spellcheck="true"></textarea>
 
@@ -49,20 +68,41 @@
       const savedContent = localStorage.getItem('clipboardNote');
       if (savedContent) {
         document.getElementById('noteContent').value = savedContent;
+        adjustTextareaHeight();
       }
       
       // iOS自动聚焦处理
       if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        setTimeout(() => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.01);
+          z-index: 9999;
+        `;
+        overlay.onclick = () => {
           document.getElementById('noteContent').focus();
-        }, 300);
+          overlay.remove();
+        };
+        document.body.appendChild(overlay);
       }
     });
+
+    // 自动调整文本区域高度
+    function adjustTextareaHeight() {
+      const textarea = document.getElementById('noteContent');
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
 
     // 自动保存功能
     document.getElementById('noteContent').addEventListener('input', (e) => {
       localStorage.setItem('clipboardNote', e.target.value);
-      showStatus('已自动保存到本地', 2000);
+      adjustTextareaHeight();
+      showStatus('已自动保存', 2000);
     });
 
     // 剪贴板处理
@@ -71,45 +111,15 @@
         const text = await navigator.clipboard.readText();
         const textarea = document.getElementById('noteContent');
         textarea.value = text;
+        adjustTextareaHeight();
         showStatus('粘贴成功 ✓', 2000);
+        
+        // 自动滚动到底部
+        setTimeout(() => {
+          textarea.scrollTop = textarea.scrollHeight;
+        }, 100);
       } catch (err) {
-        showStatus('⚠️ 请点击页面任意位置后重试', 3000);
-      }
-    }
-
-    // GitHub上传
-    async function uploadToGitHub() {
-      const content = document.getElementById('noteContent').value;
-      if (!content.trim()) {
-        showStatus('❌ 内容不能为空', 3000);
-        return;
-      }
-
-      showStatus('正在上传...', 0);
-      const btn = document.getElementById('uploadBtn');
-      btn.disabled = true;
-      
-      try {
-        // 替换为你的后端API地址
-        const response = await fetch('https://your-vercel-app.vercel.app/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: content,
-            filename: `note_${new Date().toISOString().slice(0,10)}.md`
-          })
-        });
-
-        if (response.ok) {
-          showStatus('✅ 上传成功', 5000);
-          localStorage.removeItem('clipboardNote');
-        } else {
-          throw new Error(await response.text());
-        }
-      } catch (error) {
-        showStatus(`❌ 上传失败: ${error.message}`, 5000);
-      } finally {
-        btn.disabled = false;
+        showStatus('⚠️ 请先点击页面任意位置，然后重试粘贴', 3000);
       }
     }
 
@@ -117,8 +127,8 @@
     function showStatus(message, duration) {
       const status = document.getElementById('status');
       status.textContent = message;
-      status.className = message.startsWith('✅') ? 'mt-3 text-sm text-green-500' : 
-                         message.startsWith('❌') ? 'mt-3 text-sm text-red-500' : 
+      status.className = message.startsWith('✓') ? 'mt-3 text-sm text-green-500' : 
+                         message.startsWith('⚠️') ? 'mt-3 text-sm text-yellow-500' : 
                          'mt-3 text-sm text-gray-500';
       
       if (duration > 0) {
