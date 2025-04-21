@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>剪贴板粘贴工具</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-md p-6">
+    <h1 class="text-2xl font-bold mb-4">剪贴板粘贴工具</h1>
+
+    <button onclick="pasteFromClipboard()" class="mb-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-xl">
+      📋 粘贴剪贴板内容
+    </button>
+
+    <textarea id="output" rows="6" class="w-full p-4 border rounded-xl bg-gray-50" placeholder="粘贴的内容将显示在这里..." readonly></textarea>
+  </div>
+
+  <script>
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById("output").value = text;
+      } catch (err) {
+        alert("无法访问剪贴板，请确保浏览器允许访问。你可以手动粘贴到输入框中。");
+      }
+    }
+  </script>
+</body>
+</html>
